@@ -15,9 +15,9 @@ import java.nio.ByteBuffer
 class MasterBootRecordCreator : PartitionTableFactory.PartitionTableCreator {
     @Throws(IOException::class)
     override fun read(blockDevice: BlockDeviceDriver): PartitionTable? {
-        val buffer = ByteBuffer.allocate(Math.max(512, blockDevice.blockSize))
-        blockDevice.read(512, buffer)
-        return if (String(buffer.array(), 0x00, 8) == GPT.EFI_PART) {
+        val buffer = ByteBuffer.allocate(Math.max(1024, blockDevice.blockSize))
+        blockDevice.read(0, buffer)
+        return if (String(buffer.array(), 0x200, 8) == GPT.EFI_PART) {
             GPTCreator().read(blockDevice)
         } else {
             blockDevice.read(0, buffer)
