@@ -51,8 +51,7 @@ ext {
 
 allprojects {
     repositories {
-        jcenter()
-        maven { url 'https://dl.bintray.com/magnusja/maven' }
+        mavenCentral()
         maven {
             url 'https://maven.google.com/'
             name 'Google'
