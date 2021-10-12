@@ -19,23 +19,23 @@ class GPT private constructor(): PartitionTable {
 
     companion object {
 
-        const val EFI_PART = "EFI_PART"
+        const val EFI_PART = "EFI PART"
 
         @Throws(IOException::class)
         fun read(blockDevice: BlockDeviceDriver): GPT? {
             val result = GPT()
-            val buffer = ByteBuffer.allocate(Math.max(128, blockDevice.blockSize))
-            blockDevice.read(512, buffer) // LBA 0
+            val buffer = ByteBuffer.allocate(Math.max(0x800, blockDevice.blockSize)) // 0x800 = 4096
+            blockDevice.read(1, buffer) // LBA 1~4
 
-            if (String(buffer.array(), 0x00, 8) == EFI_PART) {
-                blockDevice.read(1024L + (result.partitions.size * 128), buffer)
-                while (buffer[0].toInt() != 0) {
-                    val offset = 1024 + (result.partitions.size * 128)
-                    val entry = PartitionTableEntry(0,
-                        buffer.getInt(offset + 32), buffer.getInt(offset + 40))
+            if (buffer.isGPT) {
+                var offset = 0x200
+                while (offset < 0x800 && buffer.getInt(offset) != 0) {
+                    val beginLBA = buffer.get(offset + 33).toInt() shl 8 + buffer.get(offset + 32).toInt()
+                    val endLBA = buffer.get(offset + 41).toInt() shl 8 + buffer.get(offset + 40).toInt()
 
+                    val entry = PartitionTableEntry(0, beginLBA, endLBA)
+                    offset += 0x80
                     result.partitions.add(entry)
-                    blockDevice.read(offset + 128L, buffer)
                 }
             } else {
                 throw IOException("not a valid GPT")
@@ -46,3 +46,13 @@ class GPT private constructor(): PartitionTable {
     }
 
 }
+
+val ByteBuffer.isGPT get() =
+    get(0x00).toInt() == 69 // E
+            && get(0x01).toInt() == 70 // F
+            && get(0x02).toInt() == 73 // I
+            && get(0x03).toInt() == 32 // (space)
+            && get(0x04).toInt() == 80 // P
+            && get(0x05).toInt() == 65 // A
+            && get(0x06).toInt() == 82 // R
+            && get(0x07).toInt() == 84 // T

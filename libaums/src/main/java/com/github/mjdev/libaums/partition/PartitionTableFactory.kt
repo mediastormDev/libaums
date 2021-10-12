@@ -40,7 +40,7 @@ object PartitionTableFactory {
     }
 
     init {
-        registerPartitionTable(FileSystemPartitionTableCreator())
+//        registerPartitionTable(FileSystemPartitionTableCreator())
         registerPartitionTable(MasterBootRecordCreator())
     }
 

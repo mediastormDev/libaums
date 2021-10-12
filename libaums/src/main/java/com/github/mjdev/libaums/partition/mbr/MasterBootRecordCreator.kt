@@ -5,6 +5,7 @@ import com.github.mjdev.libaums.partition.PartitionTable
 import com.github.mjdev.libaums.partition.PartitionTableFactory
 import com.github.mjdev.libaums.partition.gpt.GPT
 import com.github.mjdev.libaums.partition.gpt.GPTCreator
+import com.github.mjdev.libaums.partition.gpt.isGPT
 import java.io.IOException
 import java.nio.ByteBuffer
 
@@ -15,11 +16,12 @@ import java.nio.ByteBuffer
 class MasterBootRecordCreator : PartitionTableFactory.PartitionTableCreator {
     @Throws(IOException::class)
     override fun read(blockDevice: BlockDeviceDriver): PartitionTable? {
-        val buffer = ByteBuffer.allocate(Math.max(1024, blockDevice.blockSize))
-        blockDevice.read(0, buffer)
-        return if (String(buffer.array(), 0x200, 8) == GPT.EFI_PART) {
+        var buffer = ByteBuffer.allocate(Math.max(512, blockDevice.blockSize))
+        blockDevice.read(1, buffer)
+        return if (buffer.isGPT) {
             GPTCreator().read(blockDevice)
         } else {
+            buffer = ByteBuffer.allocate(Math.max(512, blockDevice.blockSize))
             blockDevice.read(0, buffer)
             MasterBootRecord.read(buffer)
         }
